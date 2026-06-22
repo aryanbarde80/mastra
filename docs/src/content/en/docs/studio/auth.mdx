@@ -150,6 +150,49 @@ const rbac = new StaticRBACProvider({
 })
 ```
 
+## Separate Studio auth from API auth
+
+By default, one auth provider secures both Studio and your API routes. If you need **different authentication for internal team members (Studio) and external API consumers**, configure `studio.auth` separately from `server.auth`.
+
+```typescript title="src/mastra/index.ts"
+import { Mastra } from '@mastra/core'
+import { SimpleAuth } from '@mastra/core/server'
+import { MastraAuthWorkos } from '@mastra/auth-workos'
+
+export const mastra = new Mastra({
+  server: {
+    // External API consumers authenticate with WorkOS SSO
+    auth: new MastraAuthWorkos({
+      clientId: process.env.WORKOS_CLIENT_ID!,
+      clientSecret: process.env.WORKOS_CLIENT_SECRET!,
+    }),
+  },
+  studio: {
+    // Internal team authenticates with a shared API key
+    auth: new SimpleAuth({
+      users: {
+        [process.env.STUDIO_API_KEY!]: {
+          id: 'team',
+          name: 'Internal Team',
+          role: 'admin',
+        },
+      },
+    }),
+  },
+})
+```
+
+When `studio.auth` is configured:
+
+- **Studio UI** uses `studio.auth` — internal team logs in via the Studio login screen
+- **API routes** use `server.auth` — external customers authenticate via their normal flow
+
+When `studio.auth` is **not** configured, Studio requests fall back to `server.auth` for backward compatibility.
+
+:::tip[When to use dual auth]
+Use dual auth when Studio is deployed for your internal team but your API is consumed by external customers with a different identity provider. For example: WorkOS SSO for customers, but a simple API key for the team that manages the Studio.
+:::
+
 ## Login methods
 
 Studio adapts its login screen based on the auth provider:
