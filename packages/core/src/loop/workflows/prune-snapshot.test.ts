@@ -73,11 +73,11 @@ describe('pruneAgentLoopSnapshot running history', () => {
       context: {
         input: { initial: true },
         previous: {
-          status: 'success',
+          status: 'suspended',
           payload: { messageListState: conversation, accumulatedSteps: ['old'] },
         },
         current: {
-          status: 'success',
+          status: 'suspended',
           payload: { messageListState: conversation, accumulatedSteps: ['old', 'current'] },
         },
       },
@@ -103,7 +103,7 @@ describe('pruneAgentLoopSnapshot running history', () => {
       activeStepsPath: { 'durable-llm-mapping': [3] },
       context: {
         input: { initial: true },
-        'durable-llm-execution': { status: 'success', output: history('s1') },
+        'durable-llm-execution': { status: 'suspended', output: history('s1') },
         'durable-llm-mapping': { status: 'running', payload: history('s2') },
       },
     } as unknown as WorkflowRunState;
@@ -133,10 +133,10 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
       activeStepsPath: {},
       context: {
         input: { initial: true },
-        'durable-llm-execution': { status: 'success', payload: history('p1'), output: history('o1') },
-        'durable-tool-call': { status: 'success', payload: history('p2'), output: [{ result: 'ok' }] },
-        'collect-tool-results': { status: 'success', payload: history('p3'), output: history('o3') },
-        'durable-llm-mapping': { status: 'success', payload: history('p4'), output: history('o4') },
+        'durable-llm-execution': { status: 'suspended', payload: history('p1'), output: history('o1') },
+        'durable-tool-call': { status: 'suspended', payload: history('p2'), output: [{ result: 'ok' }] },
+        'collect-tool-results': { status: 'suspended', payload: history('p3'), output: history('o3') },
+        'durable-llm-mapping': { status: 'suspended', payload: history('p4'), output: history('o4') },
       },
     } as unknown as WorkflowRunState;
 
@@ -162,8 +162,8 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
       activeStepsPath: { 'collect-tool-results': [2] },
       context: {
         input: { initial: true },
-        'durable-llm-execution': { status: 'success', output: history('o1') },
-        'durable-tool-call': { status: 'success', output: [{ result: 'ok' }] },
+        'durable-llm-execution': { status: 'suspended', output: history('o1') },
+        'durable-tool-call': { status: 'suspended', output: [{ result: 'ok' }] },
         'collect-tool-results': { status: 'running', payload: history('p3') },
       },
     } as unknown as WorkflowRunState;
@@ -184,7 +184,7 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
       activeStepsPath: { 'durable-tool-call': [1] },
       context: {
         input: { initial: true },
-        'durable-llm-execution': { status: 'success', payload: history('p1'), output: history('o1') },
+        'durable-llm-execution': { status: 'suspended', payload: history('p1'), output: history('o1') },
       },
     } as unknown as WorkflowRunState;
 
@@ -210,7 +210,7 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
       activeStepsPath: { 'durable-agentic-execution': [1] },
       context: {
         input: { initial: true },
-        prepare: { status: 'success', output: history('o1') },
+        prepare: { status: 'suspended', output: history('o1') },
         'durable-agentic-execution': { status: 'running', payload: bodyInput },
       },
     } as unknown as WorkflowRunState;
@@ -240,8 +240,8 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
       activeStepsPath: {},
       context: {
         input: { initial: true },
-        'branch-a': { status: 'success', output: history('a') },
-        'branch-b': { status: 'success', output: history('b') },
+        'branch-a': { status: 'suspended', output: history('a') },
+        'branch-b': { status: 'suspended', output: history('b') },
       },
     } as unknown as WorkflowRunState;
 
@@ -260,8 +260,8 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
         activeStepsPath: {},
         context: {
           input: { initial: true },
-          'durable-llm-execution': { status: 'success', payload: history('p1'), output: history('o1') },
-          'durable-tool-call': { status: 'success', payload: history('p2'), output: history('o2') },
+          'durable-llm-execution': { status: 'suspended', payload: history('p1'), output: history('o1') },
+          'durable-tool-call': { status: 'suspended', payload: history('p2'), output: history('o2') },
         },
       }) as unknown as WorkflowRunState;
 
@@ -295,8 +295,8 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
 
     it("keeps the finished step's output and still prunes older steps", () => {
       const snapshot = finishedCheckpoint([stepEntry('older'), { type: 'mapping', id: 'map-to-llm-input' }], {
-        older: { status: 'success', payload: heavy(), output: heavy() },
-        'map-to-llm-input': { status: 'success', payload: heavy(), output: { ...heavy(), llmOutput: heavy() } },
+        older: { status: 'suspended', payload: heavy(), output: heavy() },
+        'map-to-llm-input': { status: 'suspended', payload: heavy(), output: { ...heavy(), llmOutput: heavy() } },
       });
 
       const context = pruneAgentLoopSnapshot({ snapshot }).context as Record<string, any>;
@@ -314,9 +314,9 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
       const snapshot = finishedCheckpoint(
         [stepEntry('older'), { type: 'parallel', steps: [stepEntry('left'), stepEntry('right')] }],
         {
-          older: { status: 'success', output: heavy() },
-          left: { status: 'success', output: heavy() },
-          right: { status: 'success', output: heavy() },
+          older: { status: 'suspended', output: heavy() },
+          left: { status: 'suspended', output: heavy() },
+          right: { status: 'suspended', output: heavy() },
         },
       );
 
@@ -333,7 +333,7 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
           stepEntry('older'),
           { type: 'loop', step: stepEntry('body'), serializedCondition: { id: 'c', fn: '' }, loopType: 'dountil' },
         ],
-        { older: { status: 'success', output: heavy() }, body: { status: 'success', output: heavy() } },
+        { older: { status: 'suspended', output: heavy() }, body: { status: 'suspended', output: heavy() } },
       );
 
       const context = pruneAgentLoopSnapshot({ snapshot }).context as Record<string, any>;
@@ -344,7 +344,7 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
 
     it('prunes as before when the checkpoint has no step graph', () => {
       const snapshot = finishedCheckpoint(undefined, {
-        'map-to-llm-input': { status: 'success', output: heavy() },
+        'map-to-llm-input': { status: 'suspended', output: heavy() },
       });
 
       const context = pruneAgentLoopSnapshot({ snapshot }).context as Record<string, any>;
@@ -355,7 +355,7 @@ describe('pruneAgentLoopSnapshot restart reads', () => {
     it('prunes as before when the checkpoint points inside a composite entry', () => {
       const snapshot = finishedCheckpoint(
         [stepEntry('older'), { type: 'parallel', steps: [stepEntry('left'), stepEntry('right')] }],
-        { left: { status: 'success', output: heavy() } },
+        { left: { status: 'suspended', output: heavy() } },
         [1, 0],
       );
 
@@ -371,7 +371,7 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
     const pruned = pruneAgentLoopSnapshot({
       snapshot: snapshotWith({
         'durable-llm-execution': {
-          status: 'success',
+          status: 'suspended',
           payload: { stepResult: stepResult() },
           output: { stepResult: stepResult() },
         },
@@ -400,7 +400,7 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
   it('preserves every routing field of stepResult', () => {
     const pruned = pruneAgentLoopSnapshot({
       snapshot: snapshotWith({
-        step: { status: 'success', output: { stepResult: stepResult() } },
+        step: { status: 'suspended', output: { stepResult: stepResult() } },
       }),
     });
 
@@ -415,7 +415,7 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
   it('passes step results without a stepResult through unchanged', () => {
     const pruned = pruneAgentLoopSnapshot({
       snapshot: snapshotWith({
-        'collect-tool-results': { status: 'success', output: { toolResults: [{ result: 'ok' }] } },
+        'collect-tool-results': { status: 'suspended', output: { toolResults: [{ result: 'ok' }] } },
       }),
     });
 
@@ -427,9 +427,9 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
   it('leaves no echo anywhere in a mixed snapshot', () => {
     const build = () =>
       snapshotWith({
-        a: { status: 'success', payload: { stepResult: stepResult() }, output: { stepResult: stepResult() } },
+        a: { status: 'suspended', payload: { stepResult: stepResult() }, output: { stepResult: stepResult() } },
         b: { status: 'running', payload: { stepResult: stepResult() }, output: { stepResult: stepResult() } },
-        c: { status: 'success', output: { stepResult: stepResult() } },
+        c: { status: 'suspended', output: { stepResult: stepResult() } },
       });
 
     // Self-check: the unpruned snapshot really carries 5 echoes, so the zero
@@ -446,7 +446,7 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
           __workflow_meta: {
             foreachOutput: [
               {
-                status: 'success',
+                status: 'suspended',
                 payload: { stepResult: stepResult(), messages: { all: ['old conversation'] } },
                 output: { stepResult: stepResult(), messages: { all: ['old conversation'] } },
                 suspendPayload: { __streamState: { messageList: 'stale' } },
@@ -496,7 +496,7 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
           __streamState: { messageList: 'outer mirror' },
           __workflow_meta: {
             foreachOutput: [
-              { status: 'success', suspendPayload: { __streamState: { messageList: 'stale' } } },
+              { status: 'suspended', suspendPayload: { __streamState: { messageList: 'stale' } } },
               {
                 status: 'suspended',
                 suspendPayload: {
@@ -522,7 +522,7 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
 
   it('is copy-on-write and does not mutate the caller snapshot', () => {
     const original = snapshotWith({
-      step: { status: 'success', output: { stepResult: stepResult() } },
+      step: { status: 'suspended', output: { stepResult: stepResult() } },
     });
     pruneAgentLoopSnapshot({ snapshot: original });
 
@@ -541,7 +541,7 @@ describe('pruneAgentLoopSnapshot stepResult.request strip', () => {
 
     function mappingSnapshot() {
       return snapshotWith({
-        'collect-tool-results': { status: 'success', output: { llmOutput: llmOutput(), toolResults: [] } },
+        'collect-tool-results': { status: 'suspended', output: { llmOutput: llmOutput(), toolResults: [] } },
         'durable-llm-mapping': { status: 'running', payload: { llmOutput: llmOutput(), toolResults: [] } },
       });
     }
@@ -596,7 +596,7 @@ describe('pruneAgentLoopSnapshot foreach step-level stream state', () => {
           __workflow_meta: {
             foreachIndex: 1,
             foreachOutput: [
-              { status: 'success', output: { ok: true }, suspendPayload: {} },
+              { status: 'suspended', output: { ok: true }, suspendPayload: {} },
               { status: 'suspended', suspendPayload: entryPayload },
             ],
           },
@@ -657,7 +657,7 @@ describe('pruneAgentLoopSnapshot terminal payload iteration state', () => {
     const pruned = pruneAgentLoopSnapshot({
       snapshot: snapshotWith({
         'durable-llm-execution': {
-          status: 'success',
+          status: 'suspended',
           payload: { ...iterationState(), stepResult: stepResult(), runId: 'run-1', iteration: 3 },
         },
       }),
@@ -709,7 +709,7 @@ describe('pruneAgentLoopSnapshot terminal payload iteration state', () => {
   it('leaves a terminal output untouched, since a same-run continuation reads it', () => {
     const pruned = pruneAgentLoopSnapshot({
       snapshot: snapshotWith({
-        'durable-llm-execution': { status: 'success', output: iterationState() },
+        'durable-llm-execution': { status: 'suspended', output: iterationState() },
       }),
     });
 
@@ -720,7 +720,7 @@ describe('pruneAgentLoopSnapshot terminal payload iteration state', () => {
     const snapshot = {
       context: {
         input: { ...iterationState(), __workflowKind: 'durable-agent' },
-        step: { status: 'success', payload: iterationState() },
+        step: { status: 'suspended', payload: iterationState() },
       },
     } as unknown as WorkflowRunState;
 
@@ -738,7 +738,7 @@ describe('pruneAgentLoopSnapshot terminal payload iteration state', () => {
           suspendPayload: {
             __workflow_meta: {
               foreachOutput: [
-                { status: 'success', payload: iterationState() },
+                { status: 'suspended', payload: iterationState() },
                 { status: 'suspended', payload: iterationState() },
               ],
             },
@@ -755,7 +755,7 @@ describe('pruneAgentLoopSnapshot terminal payload iteration state', () => {
 
   it('is copy-on-write and does not mutate the caller snapshot', () => {
     const original = snapshotWith({
-      step: { status: 'success', payload: iterationState() },
+      step: { status: 'suspended', payload: iterationState() },
     });
     pruneAgentLoopSnapshot({ snapshot: original });
 
@@ -765,7 +765,7 @@ describe('pruneAgentLoopSnapshot terminal payload iteration state', () => {
   it('passes terminal payloads without iteration state through untouched', () => {
     const pruned = pruneAgentLoopSnapshot({
       snapshot: snapshotWith({
-        'collect-tool-results': { status: 'success', payload: { toolResults: [{ result: 'ok' }] } },
+        'collect-tool-results': { status: 'suspended', payload: { toolResults: [{ result: 'ok' }] } },
       }),
     });
 
@@ -796,7 +796,7 @@ describe('pruneAgentLoopSnapshot agentSpanData instructions strip', () => {
     const pruned = pruneAgentLoopSnapshot({
       snapshot: snapshotWith({
         step: {
-          status: 'success',
+          status: 'suspended',
           payload: { agentSpanData: agentSpanData(), runId: 'r' },
           output: { agentSpanData: agentSpanData() },
           prevOutput: { agentSpanData: agentSpanData() },
@@ -835,7 +835,7 @@ describe('pruneAgentLoopSnapshot agentSpanData instructions strip', () => {
 
   it('does not mutate the caller snapshot', () => {
     const original = snapshotWith({
-      step: { status: 'success', payload: { agentSpanData: agentSpanData() } },
+      step: { status: 'suspended', payload: { agentSpanData: agentSpanData() } },
     });
     const before = structuredClone(original);
     pruneAgentLoopSnapshot({ snapshot: original });
